@@ -1,13 +1,16 @@
 # ActivitySim
 # See full license in LICENSE.txt.
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+import tempfile
 
 import pandas as pd
 import pandas.testing as pdt
 import pytest
+from pydantic import ValidationError
 
 from activitysim.core import workflow
 
@@ -173,6 +176,74 @@ def test_sandag_abm3_progressive(use_sharrow):
     regress(out_dir, filename="final_vehicles.csv")
     regress(out_dir, filename="final_accessibility.csv")
     regress(out_dir, filename="final_joint_tour_participants.csv")
+
+
+def test_extension_settings_checker():
+    """Test that the extension settings checker works as expected."""
+    import activitysim.abm  # register components # noqa: F401
+
+    out_dir = _test_path("output-extension-settings-checker")
+    out_dir.mkdir(exist_ok=True)
+    out_dir.joinpath(".gitignore").write_text("**\n")
+
+    settings = dict(
+        cleanup_pipeline_after_run=False,
+        treat_warnings_as_errors=True,
+        households_sample_size=100,
+        chunk_size=0,
+        use_shadow_pricing=True,
+    )
+    tags = ["-hh100"]
+
+    # create a copy of the resident settings directory in a temporary location
+    # to avoid modifying the original settings files
+    resident_configs_dir = Path(_example_path(r"configs/resident"))
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_resident_configs_dir = Path(tmpdir) / "resident"
+        tmp_resident_configs_dir.mkdir()
+        for item in resident_configs_dir.iterdir():
+            if item.is_file():
+                shutil.copy(item, tmp_resident_configs_dir)
+
+        # modify an extension settings file to include an invalid setting
+        with open(tmp_resident_configs_dir / "av_ownership.yaml", "r") as f:
+            av_ownership_settings = f.read()
+        av_ownership_settings = av_ownership_settings.replace("LOGIT_TYPE: MNL", "LOGIT_TYPE: BAD")
+        with open(tmp_resident_configs_dir / "av_ownership.yaml", "w") as f:
+            f.write(av_ownership_settings)
+
+        with open(tmp_resident_configs_dir / "av_ownership.yaml", "r") as f:
+            av_ownership_settings_ = f.read()
+            print("----")
+            print(av_ownership_settings_)
+            print("----")
+
+        state = workflow.State.make_default(
+            configs_dir=(
+                _example_path(r"configs/common"),
+                tmp_resident_configs_dir,
+            ),
+            data_dir=_example_path("data"),
+            output_dir=out_dir,
+            settings=settings,
+        )
+
+        state.import_extensions("extensions")
+        state.logging.config_logger()
+
+        assert state.settings.models == EXPECTED_MODELS
+        assert state.settings.chunk_size == 0
+
+        # step_name = EXPECTED_MODELS[0]
+
+        with pytest.raises(ValidationError, match="1 validation error for AVOwnershipSettings"):
+            for step_name in EXPECTED_MODELS[:5]:
+                if step_name == "av_ownership":
+                    break
+                    # if we get here without a ValidationError, the settings checker is
+                    # NOT working correctly on the extensions, we should have raised
+                    # the validation error sooner
+                state.run.by_name(step_name)
 
 
 if __name__ == "__main__":
