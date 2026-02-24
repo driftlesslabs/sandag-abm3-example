@@ -55,6 +55,7 @@ input_table_list:
       - num_workers
       - bldgsz
       - unittype
+      - poverty
   - tablename: persons
     filename: persons.csv
     index_col: person_id
@@ -147,13 +148,6 @@ output_tables:
         TAZ: land_use_taz.TAZ
     - disaggregate_accessibility
 
-distributed_time_factor_work_mean: 1.0
-distributed_time_factor_work_stddev: 0.7
-distributed_time_factor_nonwork_mean: 1.0
-distributed_time_factor_nonwork_stddev: 0.6
-distributed_time_factor_min: 0.1
-distributed_time_factor_max: 10
-
 check_model_settings: True
 
 models:
@@ -181,6 +175,7 @@ models:
   - transponder_ownership
   - free_parking
   - telecommute_frequency
+  - telecommute_status
   - cdap_simulate
   - mandatory_tour_frequency
   - mandatory_tour_scheduling

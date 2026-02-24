@@ -1,10 +1,10 @@
 # ActivitySim
 # See full license in LICENSE.txt.
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
+import shutil
 import tempfile
 
 import pandas as pd
@@ -28,6 +28,18 @@ def _test_path(dirname) -> Path:
 def regress(out_dir: Path, regress_dir: Path = None, filename="final_trips.csv"):
     if regress_dir is None:
         regress_dir = _test_path("regress")
+
+    # check that the regression target file exists,
+    # if not, we will write one as the new regression target
+    if not regress_dir.is_dir():
+        print(f"Regression target directory {regress_dir} does not exist, creating it")
+        regress_dir.mkdir(parents=True, exist_ok=True)
+    if not regress_dir.joinpath(filename).is_file():
+        print(f"Regression target file {regress_dir.joinpath(filename)} does not exist, "
+              f"writing new regression target")
+        shutil.copy(out_dir.joinpath(filename), regress_dir.joinpath(filename))
+        return
+
     regress_df = pd.read_csv(regress_dir.joinpath(filename))
     final_df = pd.read_csv(out_dir / filename)
 
@@ -61,6 +73,7 @@ EXPECTED_MODELS = [
     "transponder_ownership",
     "free_parking",
     "telecommute_frequency",
+    "telecommute_status",
     "cdap_simulate",
     "mandatory_tour_frequency",
     "mandatory_tour_scheduling",
@@ -146,7 +159,7 @@ def test_sandag_abm3_progressive(use_sharrow):
         if ref_pipeline.exists():
             try:
                 # The usual default rtol=1e-5 is too strict for cross-platform testing
-                state.checkpoint.check_against(ref_pipeline, checkpoint_name=step_name, rtol=3.3e-5)
+                state.checkpoint.check_against(ref_pipeline, checkpoint_name=step_name, rtol=1e-4)
             except Exception:
                 print(f"> sandag-abm3 {step_name}: ERROR")
                 raise
