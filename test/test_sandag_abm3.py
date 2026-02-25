@@ -6,11 +6,12 @@ import sys
 from pathlib import Path
 import shutil
 import tempfile
+import importlib
 
 import pandas as pd
 import pandas.testing as pdt
 import pytest
-from pydantic import ValidationError
+from activitysim.core.exceptions import ModelConfigurationError
 
 from activitysim.core import workflow
 
@@ -194,6 +195,7 @@ def test_sandag_abm3_progressive(use_sharrow):
 def test_extension_settings_checker():
     """Test that the extension settings checker works as expected."""
     import activitysim.abm  # register components # noqa: F401
+    from activitysim.abm.models.settings_checker import check_model_settings
 
     out_dir = _test_path("output-extension-settings-checker")
     out_dir.mkdir(exist_ok=True)
@@ -206,7 +208,6 @@ def test_extension_settings_checker():
         chunk_size=0,
         use_shadow_pricing=True,
     )
-    tags = ["-hh100"]
 
     # create a copy of the resident settings directory in a temporary location
     # to avoid modifying the original settings files
@@ -247,17 +248,21 @@ def test_extension_settings_checker():
         assert state.settings.models == EXPECTED_MODELS
         assert state.settings.chunk_size == 0
 
-        # step_name = EXPECTED_MODELS[0]
-
-        with pytest.raises(ValidationError, match="1 validation error for AVOwnershipSettings"):
-            for step_name in EXPECTED_MODELS[:5]:
-                if step_name == "av_ownership":
-                    break
-                    # if we get here without a ValidationError, the settings checker is
-                    # NOT working correctly on the extensions, we should have raised
-                    # the validation error sooner
-                state.run.by_name(step_name)
-
+        extension_checker_settings = {}
+        extension_names = state.get_injectable("imported_extensions")
+        if extension_names:
+            for ext in extension_names:
+                try:
+                    settings_checker_ext = importlib.import_module(
+                        ext + ".settings_checker"
+                    )
+                    extension_checker_settings.update(
+                        settings_checker_ext.EXTENSION_CHECKER_SETTINGS
+                    )
+                except ImportError:
+                    raise
+        with pytest.raises(ModelConfigurationError, match="Encountered one or more errors in settings checker"):
+            check_model_settings(state, extension_settings=extension_checker_settings)
 
 if __name__ == "__main__":
     # run_test_sandag_abm3(multiprocess=True)
