@@ -21,6 +21,10 @@ EXTENSION_CHECKER_SETTINGS = {
         "settings_cls": AVOwnershipSettings,
         "settings_file": "av_ownership.yaml"
     },
+    "external_worker_identification": {
+        "settings_cls": ExternalIdentificationSettings,
+        "settings_file": "external_worker_identification.yaml"
+    },
     "external_student_identification": {
         "settings_cls": ExternalIdentificationSettings,
         "settings_file": "external_student_identification.yaml"
