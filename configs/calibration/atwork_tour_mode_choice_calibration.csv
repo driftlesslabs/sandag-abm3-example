@@ -1,5 +1,4 @@
 description,coefficient,model_value,target_value,hold_fast,min,max,damping,method,tolerance,default_increment
-zero-auto - atwork - SHARED2,coef_calib_za_SHARED2_atwork,"get_model_value(context, 'SHARED2', '0', 'Work sub-tour')","get_target_value(context, 'SHARED2', '0', 'Work sub-tour')",FALSE,-5,5,1,log_ratio,100,2
 zero-auto - atwork - SHARED3,coef_calib_za_SHARED3_atwork,"get_model_value(context, 'SHARED3', '0', 'Work sub-tour')","get_target_value(context, 'SHARED3', '0', 'Work sub-tour')",FALSE,-5,5,1,log_ratio,100,2
 zero-auto - atwork - WALK,coef_calib_za_WALK_atwork,"get_model_value(context, 'WALK', '0', 'Work sub-tour')","get_target_value(context, 'WALK', '0', 'Work sub-tour')",FALSE,-5,5,1,log_ratio,100,2
 zero-auto - atwork - BIKE,coef_calib_za_bike_atwork,"get_model_value(context, 'BIKE', '0', 'Work sub-tour')","get_target_value(context, 'BIKE', '0', 'Work sub-tour')",FALSE,-5,5,1,log_ratio,100,2
