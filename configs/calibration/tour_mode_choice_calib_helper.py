@@ -362,6 +362,9 @@ def get_target_value(context, mode, auto_suff, purpose):
     on-board survey data and the model output should match the actual number,
     not the share.
 
+    An empty modeled segment with positive survey targets cannot be calibrated
+    and raises ValueError instead of scaling those targets to zero.
+
     Parameters
     ----------
     context : dict
@@ -399,6 +402,16 @@ def get_target_value(context, mode, auto_suff, purpose):
     ]["tours"].sum()
 
     total_target_tours = num_transit_target_tours + num_non_transit_target_tours
+    if num_model_tours == 0 and total_target_tours > 0:
+        raise ValueError(
+            "Cannot calibrate tour mode choice segment "
+            f"auto_suff={auto_suff!r}, purpose={purpose!r}: no modeled tours "
+            f"but {total_target_tours:g} survey target tours. "
+            "This segment has no sample support; scaling its targets to zero "
+            "would falsely imply convergence. Increase the simulation sample "
+            "or reconcile the modeled population and survey segment definitions "
+            "before retrying calibration."
+        )
     if num_non_transit_target_tours == 0:
         # There is no non-transit target mass available to absorb the difference
         # between model and transit totals. Preserve transit targets when they
